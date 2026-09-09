@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>PriorCash Mooncake Frames</title>
+    <title>PriorCash Frame Uploads</title>
     <style>
       :root {
         color-scheme: light;
@@ -12,34 +12,40 @@
         color: #111827;
       }
 
+      * {
+        box-sizing: border-box;
+      }
+
       body {
         margin: 0;
       }
 
       main {
-        max-width: 900px;
+        width: min(1120px, calc(100% - 40px));
         margin: 0 auto;
-        padding: 48px 20px;
+        padding: 48px 0;
       }
 
       h1 {
-        margin: 0 0 12px;
-        font-size: 30px;
+        margin: 0 0 10px;
+        font-size: 32px;
         line-height: 1.15;
       }
 
+      h2 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.25;
+      }
+
       p {
-        margin: 0 0 16px;
+        margin: 0;
         color: #4b5563;
         line-height: 1.55;
       }
 
-      .panel {
-        margin-top: 24px;
-        padding: 18px;
-        border: 1px solid #dbe3ef;
-        border-radius: 8px;
-        background: #fff;
+      a {
+        color: #0614f4;
       }
 
       code,
@@ -49,16 +55,28 @@
 
       code {
         display: inline-block;
-        padding: 2px 6px;
+        max-width: 100%;
+        padding: 4px 7px;
+        overflow-wrap: anywhere;
         border-radius: 5px;
         background: #eef2f7;
         color: #1f2937;
       }
 
+      button {
+        min-height: 38px;
+        padding: 0 13px;
+        border: 0;
+        border-radius: 8px;
+        color: #fff;
+        background: #0614f4;
+        font-weight: 650;
+        cursor: pointer;
+      }
+
       textarea {
         width: 100%;
-        min-height: 220px;
-        box-sizing: border-box;
+        min-height: 150px;
         margin-top: 12px;
         padding: 12px;
         resize: vertical;
@@ -68,15 +86,53 @@
         background: #fbfdff;
       }
 
-      button {
-        min-height: 40px;
-        padding: 0 14px;
-        border: 0;
+      .intro {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 24px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 16px;
+      }
+
+      .card {
+        display: grid;
+        gap: 14px;
+        padding: 18px;
+        border: 1px solid #dbe3ef;
         border-radius: 8px;
-        color: #fff;
-        background: #0614f4;
-        font-weight: 650;
-        cursor: pointer;
+        background: #fff;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pill {
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #eef2f7;
+        color: #374151;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+
+      .label {
+        color: #6b7280;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
       }
 
       .row {
@@ -84,47 +140,165 @@
         flex-wrap: wrap;
         gap: 10px;
         align-items: center;
-        margin-top: 14px;
       }
 
-      .muted {
+      .status {
         color: #6b7280;
+        font-size: 14px;
+      }
+
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
         font-size: 14px;
       }
     </style>
   </head>
   <body>
     <main>
-      <h1>PriorCash Mooncake Frames</h1>
-      <p>Static GitHub Pages asset host for the ordered Mooncake WebP frame sequence.</p>
-      <p>Manifest: <a href="./manifest.json"><code>manifest.json</code></a></p>
-
-      <section class="panel">
-        <p><strong>Frame URL base</strong></p>
-        <code id="base-url"></code>
-        <div class="row">
-          <button id="copy">Copy URL list</button>
-          <span class="muted" id="status">146 frames, filename sorted.</span>
-        </div>
-        <textarea id="urls" readonly></textarea>
+      <section class="intro">
+        <h1>PriorCash Frame Uploads</h1>
+        <p>Separate public frame sequences for Framer scroll animations.</p>
+        <p>Legacy manifest: <a href="./manifest.json"><code>manifest.json</code></a></p>
       </section>
+
+      <section class="grid" id="sequences"></section>
     </main>
 
     <script>
-      async function init() {
-        const manifest = await fetch("./manifest.json").then((response) => response.json())
-        const base = new URL("./", window.location.href).href
-        const urls = manifest.frames.map((frame) => new URL(frame.path.replace(/^\//, ""), base).href)
+      const sequences = [
+        {
+          name: "Mooncake",
+          path: "/frames/",
+          prefix: "fiscat_mooncake_motion_C_overscan_",
+          extension: "webp",
+          count: 146,
+          start: 0,
+          pad: 5,
+        },
+        {
+          name: "Galaxy 6",
+          path: "/galaxy-6-webp_q80/",
+          prefix: "fiscat_galaxy_6_motion_C_overscan_",
+          extension: "webp",
+          count: 145,
+          start: 0,
+          pad: 5,
+        },
+        {
+          name: "Mooncake Max 50kb",
+          path: "/mooncake-max50kb/",
+          prefix: "fiscat_mooncake_motion_C_overscan_",
+          extension: "webp",
+          count: 146,
+          start: 0,
+          pad: 5,
+        },
+        {
+          name: "Touch 11",
+          path: "/touch-11-webp_q80/",
+          prefix: "fiscat_touch_11_motion_C_overscan_",
+          extension: "webp",
+          count: 146,
+          start: 0,
+          pad: 5,
+        },
+        {
+          name: "Landing JPG Sequence",
+          path: "/landing-scroll-sequence-framer/assets/landing-sequence/",
+          prefix: "frame-",
+          extension: "jpg",
+          count: 120,
+          start: 1,
+          pad: 4,
+        },
+      ]
 
-        document.getElementById("base-url").textContent = base
-        document.getElementById("urls").value = urls.join("\n")
-        document.getElementById("copy").addEventListener("click", async () => {
-          await navigator.clipboard.writeText(urls.join("\n"))
-          document.getElementById("status").textContent = "Copied 146 frame URLs."
-        })
+      function frameNumber(sequence, offset) {
+        return String(sequence.start + offset).padStart(sequence.pad, "0")
       }
 
-      init()
+      function frameUrl(sequence, offset) {
+        const base = new URL(sequence.path, window.location.origin)
+        return new URL(
+          `${sequence.prefix}${frameNumber(sequence, offset)}.${sequence.extension}`,
+          base
+        ).href
+      }
+
+      function framerBaseUrl(sequence) {
+        return new URL(`${sequence.path}${sequence.prefix}`, window.location.origin).href
+      }
+
+      function allFrameUrls(sequence) {
+        return Array.from({ length: sequence.count }, (_, index) => frameUrl(sequence, index))
+      }
+
+      async function copyText(text, statusElement, message) {
+        await navigator.clipboard.writeText(text)
+        statusElement.textContent = message
+      }
+
+      function renderSequence(sequence) {
+        const card = document.createElement("article")
+        card.className = "card"
+
+        const baseUrl = framerBaseUrl(sequence)
+        const firstUrl = frameUrl(sequence, 0)
+        const lastUrl = frameUrl(sequence, sequence.count - 1)
+        const urls = allFrameUrls(sequence)
+
+        card.innerHTML = `
+          <div class="row">
+            <h2>${sequence.name}</h2>
+          </div>
+
+          <div class="meta">
+            <span class="pill">${sequence.count} frames</span>
+            <span class="pill">${sequence.extension.toUpperCase()}</span>
+            <span class="pill">Start ${sequence.start}</span>
+            <span class="pill">Pad ${sequence.pad}</span>
+          </div>
+
+          <div class="field">
+            <span class="label">Framer Frames URL</span>
+            <code>${baseUrl}</code>
+          </div>
+
+          <div class="field">
+            <span class="label">Framer Settings</span>
+            <code>Frames: ${sequence.count} / Start: ${sequence.start} / Pad: ${sequence.pad} / Format: ${sequence.extension.toUpperCase()}</code>
+          </div>
+
+          <div class="links">
+            <a href="${sequence.path}">Open folder</a>
+            <a href="${firstUrl}">First frame</a>
+            <a href="${lastUrl}">Last frame</a>
+          </div>
+
+          <div class="row">
+            <button type="button" data-copy-base>Copy Framer base</button>
+            <button type="button" data-copy-list>Copy URL list</button>
+            <span class="status">Ready</span>
+          </div>
+
+          <textarea readonly>${urls.join("\n")}</textarea>
+        `
+
+        const status = card.querySelector(".status")
+        card.querySelector("[data-copy-base]").addEventListener("click", () => {
+          copyText(baseUrl, status, "Copied Framer base URL.")
+        })
+        card.querySelector("[data-copy-list]").addEventListener("click", () => {
+          copyText(urls.join("\n"), status, `Copied ${sequence.count} frame URLs.`)
+        })
+
+        return card
+      }
+
+      const root = document.getElementById("sequences")
+      sequences.forEach((sequence) => root.appendChild(renderSequence(sequence)))
     </script>
   </body>
 </html>
