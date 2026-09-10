@@ -222,6 +222,15 @@
           start: 1,
           pad: 5,
         },
+        {
+          name: "Landing WebP manual 235",
+          path: "/landing_webm_235/",
+          prefix: "landing-webp-q60LANDING_v006 (1)_",
+          extension: "webp",
+          count: 235,
+          start: 1,
+          pad: 6,
+        },
       ]
 
       function frameNumber(sequence, offset) {
@@ -230,8 +239,9 @@
 
       function frameUrl(sequence, offset) {
         const base = new URL(sequence.path, window.location.origin)
+        const suffix = sequence.suffix || ""
         return new URL(
-          `${sequence.prefix}${frameNumber(sequence, offset)}.${sequence.extension}`,
+          `${sequence.prefix}${frameNumber(sequence, offset)}${suffix}.${sequence.extension}`,
           base
         ).href
       }
@@ -268,6 +278,7 @@
             <span class="pill">${sequence.extension.toUpperCase()}</span>
             <span class="pill">Start ${sequence.start}</span>
             <span class="pill">Pad ${sequence.pad}</span>
+            ${sequence.suffix ? `<span class="pill">Suffix ${sequence.suffix}</span>` : ""}
           </div>
 
           <div class="field">
@@ -277,7 +288,7 @@
 
           <div class="field">
             <span class="label">Framer Settings</span>
-            <code>Frames: ${sequence.count} / Start: ${sequence.start} / Pad: ${sequence.pad} / Format: ${sequence.extension.toUpperCase()}</code>
+            <code>Frames: ${sequence.count} / Start: ${sequence.start} / Pad: ${sequence.pad} / Format: ${sequence.extension.toUpperCase()}${sequence.suffix ? ` / Suffix: ${sequence.suffix}` : ""}</code>
           </div>
 
           <div class="links">
