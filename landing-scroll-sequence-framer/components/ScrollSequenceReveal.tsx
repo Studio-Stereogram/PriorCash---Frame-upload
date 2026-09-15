@@ -34,6 +34,12 @@ type Props = {
     snapRange: number
     snapDelay: number
     snapSpeedLimit: number
+    anchorSmooth: boolean
+    anchorTargets: string
+    anchorMsPer100vh: number
+    anchorMinDuration: number
+    anchorMaxDuration: number
+    anchorOffset: number
     preloadRadius: number
     maxCanvasDpr: number
     animateOnCanvas: boolean
@@ -74,6 +80,46 @@ function frameUrl(
 
 function clamp(value: number, min: number, max: number) {
     return Math.min(Math.max(value, min), max)
+}
+
+function easeInOutCubic(t: number) {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+}
+
+function parseAnchorTargets(targets: string) {
+    return new Set(
+        targets
+            .split(",")
+            .map((target) => target.trim().replace(/^#/, ""))
+            .filter(Boolean)
+    )
+}
+
+function getAnchorIdFromHref(rawHref: string | null) {
+    if (!rawHref) return null
+
+    try {
+        const url = new URL(rawHref, window.location.href)
+        if (url.pathname !== window.location.pathname || !url.hash) return null
+        return decodeURIComponent(url.hash.slice(1))
+    } catch {
+        if (!rawHref.startsWith("#")) return null
+        return decodeURIComponent(rawHref.slice(1))
+    }
+}
+
+function selectorEscape(value: string) {
+    return window.CSS?.escape ? CSS.escape(value) : value.replace(/"/g, '\\"')
+}
+
+function findAnchorElement(id: string) {
+    const escapedId = selectorEscape(id)
+
+    return (
+        document.getElementById(id) ||
+        document.querySelector(`[name="${escapedId}"]`) ||
+        document.querySelector(`[data-framer-name="${escapedId}"]`)
+    )
 }
 
 function progressToFrameIndex(
@@ -237,6 +283,12 @@ export default function ScrollSequenceReveal(props: Props) {
         snapRange,
         snapDelay,
         snapSpeedLimit,
+        anchorSmooth,
+        anchorTargets,
+        anchorMsPer100vh,
+        anchorMinDuration,
+        anchorMaxDuration,
+        anchorOffset,
         preloadRadius,
         maxCanvasDpr,
         animateOnCanvas,
@@ -247,6 +299,7 @@ export default function ScrollSequenceReveal(props: Props) {
     const canvasRef = React.useRef<HTMLCanvasElement>(null)
     const imageCache = React.useRef(new Map<number, HTMLImageElement>())
     const rafRef = React.useRef<number | null>(null)
+    const anchorRafRef = React.useRef<number | null>(null)
     const currentFrameRef = React.useRef(-1)
     const reducedMotion = useReducedMotion()
     const size = useElementSize(stageRef)
@@ -458,6 +511,79 @@ export default function ScrollSequenceReveal(props: Props) {
         visualProgressTarget,
     ])
 
+    React.useEffect(() => {
+        if (!anchorSmooth || isCanvas) return
+
+        const allowedTargets = parseAnchorTargets(anchorTargets)
+        if (!allowedTargets.size) return
+
+        const onClick = (event: MouseEvent) => {
+            const target = event.target
+            if (!(target instanceof Element)) return
+
+            const link = target.closest("a")
+            if (!link) return
+
+            const targetId = getAnchorIdFromHref(link.getAttribute("href"))
+            if (!targetId || !allowedTargets.has(targetId)) return
+
+            const anchorElement = findAnchorElement(targetId)
+            if (!anchorElement) return
+
+            event.preventDefault()
+            event.stopPropagation()
+
+            if (anchorRafRef.current) {
+                cancelAnimationFrame(anchorRafRef.current)
+                anchorRafRef.current = null
+            }
+
+            const startY = window.scrollY
+            const targetY =
+                anchorElement.getBoundingClientRect().top +
+                window.scrollY -
+                anchorOffset
+            const distance = targetY - startY
+            const distanceInVh = Math.abs(distance) / window.innerHeight
+            const duration = clamp(
+                distanceInVh * anchorMsPer100vh,
+                anchorMinDuration,
+                anchorMaxDuration
+            )
+            const startTime = performance.now()
+
+            const tick = (now: number) => {
+                const progress = clamp((now - startTime) / duration, 0, 1)
+                window.scrollTo(0, startY + distance * easeInOutCubic(progress))
+
+                if (progress < 1) {
+                    anchorRafRef.current = requestAnimationFrame(tick)
+                    return
+                }
+
+                anchorRafRef.current = null
+                window.history.pushState(null, "", `#${targetId}`)
+            }
+
+            anchorRafRef.current = requestAnimationFrame(tick)
+        }
+
+        document.addEventListener("click", onClick, true)
+
+        return () => {
+            document.removeEventListener("click", onClick, true)
+            if (anchorRafRef.current) cancelAnimationFrame(anchorRafRef.current)
+        }
+    }, [
+        anchorMaxDuration,
+        anchorMinDuration,
+        anchorMsPer100vh,
+        anchorOffset,
+        anchorSmooth,
+        anchorTargets,
+        isCanvas,
+    ])
+
     const sectionHeight = `${scrollLength}vh`
     const showVideo = mode === "video" || reducedMotion
     const showCanvasPlaceholder = mode === "sequence" && !shouldRenderSequence
@@ -515,11 +641,11 @@ export default function ScrollSequenceReveal(props: Props) {
         <section
             ref={sectionRef}
             style={{
+                ...style,
                 position: "relative",
                 height: sectionHeight,
                 width: "100%",
                 background: backgroundColor || "transparent",
-                ...style,
             }}
         >
             <div
@@ -636,6 +762,12 @@ ScrollSequenceReveal.defaultProps = {
     snapRange: 3,
     snapDelay: 120,
     snapSpeedLimit: 38,
+    anchorSmooth: false,
+    anchorTargets: "scroll-1, scroll-2, scroll-3, scroll-4",
+    anchorMsPer100vh: 120,
+    anchorMinDuration: 900,
+    anchorMaxDuration: 5200,
+    anchorOffset: 0,
     preloadRadius: 5,
     maxCanvasDpr: 1.5,
     animateOnCanvas: false,
@@ -703,7 +835,7 @@ addPropertyControls(ScrollSequenceReveal, {
         type: ControlType.Number,
         title: "Scroll vh",
         min: 300,
-        max: 3000,
+        max: 12000,
         step: 25,
     },
     objectFit: {
@@ -872,6 +1004,50 @@ addPropertyControls(ScrollSequenceReveal, {
         step: 1,
         hidden: ({ mode, sequenceMapping, snapToScenes }) =>
             mode !== "sequence" || sequenceMapping !== "scenes" || !snapToScenes,
+    },
+    anchorSmooth: {
+        type: ControlType.Boolean,
+        title: "Anchor Smooth",
+        enabledTitle: "On",
+        disabledTitle: "Off",
+    },
+    anchorTargets: {
+        type: ControlType.String,
+        title: "Anchor Targets",
+        placeholder: "scroll-1, scroll-2, scroll-3, scroll-4",
+        hidden: ({ anchorSmooth }) => !anchorSmooth,
+    },
+    anchorMsPer100vh: {
+        type: ControlType.Number,
+        title: "Anchor Speed",
+        min: 40,
+        max: 400,
+        step: 10,
+        hidden: ({ anchorSmooth }) => !anchorSmooth,
+    },
+    anchorMinDuration: {
+        type: ControlType.Number,
+        title: "Anchor Min",
+        min: 200,
+        max: 3000,
+        step: 100,
+        hidden: ({ anchorSmooth }) => !anchorSmooth,
+    },
+    anchorMaxDuration: {
+        type: ControlType.Number,
+        title: "Anchor Max",
+        min: 1000,
+        max: 12000,
+        step: 100,
+        hidden: ({ anchorSmooth }) => !anchorSmooth,
+    },
+    anchorOffset: {
+        type: ControlType.Number,
+        title: "Anchor Offset",
+        min: -500,
+        max: 500,
+        step: 10,
+        hidden: ({ anchorSmooth }) => !anchorSmooth,
     },
     preloadRadius: {
         type: ControlType.Number,

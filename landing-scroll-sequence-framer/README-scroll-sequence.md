@@ -92,6 +92,48 @@ Snap Delay: 120
 Snap Speed: 38
 ```
 
+## Product Anchor Scroll
+
+Use `components/SmoothAnchorController.tsx` as a separate Framer Code Component if product navigation buttons should scroll through the sequence instead of jumping too fast.
+
+Drop one instance anywhere on the page. It is invisible on the published site and only listens for matching anchor clicks.
+
+Use these section anchor names:
+
+```text
+scroll-1 = t6
+scroll-2 = t11
+scroll-3 = moon
+scroll-4 = pair
+```
+
+Suggested settings:
+
+```text
+Targets: scroll-1, scroll-2, scroll-3, scroll-4
+Speed: 120
+Min: 900
+Max: 5200
+Offset: 0
+```
+
+`Speed` is milliseconds per 100vh of distance. Higher is slower. The controller only intercepts links to the names listed in `Targets`; other page links stay native.
+
+## Product Button
+
+Use `components/ProductAnchorButton.tsx` if the navigation buttons should be separate Framer Code Components.
+
+Set `Target` per product:
+
+```text
+T6 = scroll-1
+T11 = scroll-2
+Moon = scroll-3
+Pair = scroll-4
+```
+
+The `Icon` control is a component slot, so a Flowbite icon can be dropped into it from Framer. Keep `Scroll` set to `Native` for the safest production behavior. Use `Smooth` only if the published page can handle animated page scrolling without lag.
+
 ## Hosting
 
 Best options:
